@@ -1,13 +1,28 @@
 # 🏛️ Digital Complaint Management System
 
+[![Live Demo](https://img.shields.io/badge/Live-GitHub%20Pages-blueviolet?style=for-the-badge&logo=github)](https://ChiranthanNS.github.io/Digital_Complaint_Management_System/)
 [![Python Version](https://img.shields.io/badge/Python-3.14%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Flask Version](https://img.shields.io/badge/Flask-3.0.3-green?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![SQLite Database](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
-[![Status](https://img.shields.io/badge/Build-Passing-brightgreen?logo=github-actions)](https://github.com/)
 
-A modern, responsive, and secure web application designed to streamline the student grievance and complaint resolution process within educational institutions. Built with a Flask backend, interactive frontend templates, and a lightweight SQLite database.
+A modern, responsive, and secure web application designed to streamline the student grievance and complaint resolution process within educational institutions. 
+
+This repository contains two implementations:
+1. **🌐 Live Static App:** A pure client-side SPA (Single Page Application) that runs directly on GitHub Pages, storing data locally via browser `localStorage`.
+2. **🐍 Python Flask App:** A full-stack Python application powered by Flask and SQLite database (located in `/backend` and `/frontend` folders).
 
 ![System Mockup](assets/hero_banner.png)
+
+---
+
+## 🌐 Live Deployment on GitHub Pages
+
+The static version is ready to be hosted on your GitHub Pages domain:
+1. Go to your repository settings on GitHub: **Settings** ➡️ **Pages** (in the left sidebar).
+2. Under **Build and deployment** ➡️ **Source**, select **Deploy from a branch**.
+3. Under **Branch**, select `main` and `/ (root)`.
+4. Click **Save**.
+5. After a few minutes, the application will be live at: **[https://ChiranthanNS.github.io/Digital_Complaint_Management_System/](https://ChiranthanNS.github.io/Digital_Complaint_Management_System/)**
 
 ---
 
