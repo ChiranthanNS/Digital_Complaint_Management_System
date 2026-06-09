@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if view_mode %}My Complaints{% else %}Submit Complaint{% endif %} – Complaint MS</title>
+  <meta name="description" content="Submit a new campus complaint or view your previous submissions." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+</head>
+<body>
+
+<div class="layout-wrapper">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-graduation-cap" style="color:#fff;"></i>
+      </div>
+      <div>
+        <div class="brand-text">Complaint MS</div>
+        <div class="brand-sub">Student Portal</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="{{ url_for('dashboard') }}"       class="nav-link-item">
+        <i class="fa-solid fa-gauge-high"></i> Dashboard
+      </a>
+      <a href="{{ url_for('submit_complaint') }}" class="nav-link-item {% if not view_mode %}active{% endif %}">
+        <i class="fa-solid fa-plus-circle"></i> Submit Complaint
+      </a>
+      <a href="{{ url_for('view_complaints') }}"  class="nav-link-item {% if view_mode %}active{% endif %}">
+        <i class="fa-solid fa-list-check"></i> My Complaints
+      </a>
+
+      <div class="nav-section-label mt-3">Account</div>
+      <a href="{{ url_for('logout') }}" class="nav-link-item">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div style="font-size:0.72rem;color:var(--text-muted);text-align:center;">
+        <i class="fa-solid fa-shield-halved me-1"></i>Secure &amp; Encrypted Session
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════ MAIN ═══════════════════ -->
+  <div class="main-content">
+
+    <!-- Top Navbar -->
+    <div class="top-navbar">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn border-0 d-md-none" id="sidebarToggle"
+                style="background:var(--glass);color:var(--text-primary);">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <span class="page-title">
+          {% if view_mode %}
+            <i class="fa-solid fa-list-check me-2" style="color:var(--primary-light);"></i>My Complaints
+          {% else %}
+            <i class="fa-solid fa-plus-circle me-2" style="color:var(--primary-light);"></i>Submit a Complaint
+          {% endif %}
+        </span>
+      </div>
+      <div class="user-badge">
+        <div class="user-avatar">
+          {{ session.student_name[0].upper() if session.student_name else 'S' }}
+        </div>
+        <span class="user-name">{{ session.student_name }}</span>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
+              <i class="fa-solid fa-circle-info me-2"></i>{{ msg }}
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- ══════════════════════════════════════════════════
+           VIEW MODE: list all complaints
+           ══════════════════════════════════════════════════ -->
+      {% if view_mode %}
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <i class="fa-solid fa-inbox" style="color:var(--primary-light);"></i>
+              All My Complaints
+            </span>
+            <a href="{{ url_for('submit_complaint') }}"
+               class="btn-action btn-update" style="text-decoration:none;">
+              <i class="fa-solid fa-plus"></i> New Complaint
+            </a>
+          </div>
+
+          {% if complaints %}
+            <div class="table-responsive">
+              <table class="data-table" id="myComplaintsTable">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>Category</th>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in complaints %}
+                  <tr>
+                    <td style="color:var(--text-muted);font-size:0.8rem;">#{{ c.complaint_id }}</td>
+                    <td>
+                      <span style="font-size:0.8rem;display:flex;align-items:center;gap:0.4rem;">
+                        <i class="fa-solid
+                          {% if 'WiFi'       in c.category %}fa-wifi
+                          {% elif 'Electric' in c.category %}fa-bolt
+                          {% elif 'Water'    in c.category %}fa-droplet
+                          {% elif 'Classroom' in c.category %}fa-chalkboard
+                          {% elif 'Hostel'   in c.category %}fa-building
+                          {% else %}fa-circle-question{% endif %}"
+                          style="color:var(--primary-light);width:14px;"></i>
+                        {{ c.category }}
+                      </span>
+                    </td>
+                    <td style="max-width:220px;">
+                      <span title="{{ c.title }}"
+                            style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        {{ c.title }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge-status
+                        {% if c.priority == 'High' %}badge-high
+                        {% elif c.priority == 'Medium' %}badge-medium
+                        {% else %}badge-low{% endif %}">
+                        {{ c.priority }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge-status
+                        {% if c.status == 'Pending' %}badge-pending
+                        {% elif c.status == 'In Progress' %}badge-in-progress
+                        {% else %}badge-resolved{% endif %}">
+                        <i class="fa-solid
+                          {% if c.status == 'Pending' %}fa-clock
+                          {% elif c.status == 'In Progress' %}fa-spinner fa-spin
+                          {% else %}fa-check{% endif %}"></i>
+                        {{ c.status }}
+                      </span>
+                    </td>
+                    <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap;">
+                      {{ c.created_at.strftime('%d %b %Y') if c.created_at else '—' }}
+                    </td>
+                    <td>
+                      <div class="d-flex gap-1 flex-wrap">
+                        <!-- View Details button triggers modal -->
+                        <button class="btn-action btn-update"
+                                data-bs-toggle="modal"
+                                data-bs-target="#detailModal"
+                                data-id="{{ c.complaint_id }}"
+                                data-title="{{ c.title | e }}"
+                                data-category="{{ c.category }}"
+                                data-priority="{{ c.priority }}"
+                                data-status="{{ c.status }}"
+                                data-description="{{ c.description | e }}"
+                                data-date="{{ c.created_at.strftime('%d %b %Y, %I:%M %p') if c.created_at else '' }}">
+                          <i class="fa-solid fa-eye"></i> View
+                        </button>
+
+                        {% if c.status == 'Pending' %}
+                          <!-- Edit Button -->
+                          <button class="btn-action btn-update"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#studentEditModal"
+                                  data-id="{{ c.complaint_id }}"
+                                  data-title="{{ c.title | e }}"
+                                  data-category="{{ c.category }}"
+                                  data-priority="{{ c.priority }}"
+                                  data-description="{{ c.description | e }}">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                          </button>
+
+                          <!-- Delete Button -->
+                          <button class="btn-action btn-delete"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#studentDeleteModal"
+                                  data-id="{{ c.complaint_id }}"
+                                  data-title="{{ c.title | e }}">
+                            <i class="fa-solid fa-trash"></i> Delete
+                          </button>
+                        {% else %}
+                          <!-- Disabled edit and delete for non-pending status -->
+                          <button class="btn-action btn-update opacity-50" style="cursor: not-allowed;" title="Cannot edit once in progress or resolved" disabled>
+                            <i class="fa-solid fa-lock"></i> Edit
+                          </button>
+                          <button class="btn-action btn-delete opacity-50" style="cursor: not-allowed;" title="Cannot delete once in progress or resolved" disabled>
+                            <i class="fa-solid fa-lock"></i> Delete
+                          </button>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          {% else %}
+            <div class="empty-state">
+              <i class="fa-solid fa-inbox"></i>
+              <p>You haven't submitted any complaints yet.</p>
+              <a href="{{ url_for('submit_complaint') }}"
+                 class="btn-action btn-update mt-2" style="display:inline-flex;text-decoration:none;">
+                <i class="fa-solid fa-plus"></i> Submit your first complaint
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ── Complaint Detail Modal ── -->
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="detailModalLabel">
+                  <i class="fa-solid fa-file-lines me-2" style="color:var(--primary-light);"></i>
+                  Complaint Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" style="padding:1.25rem;">
+                <table style="width:100%;font-size:0.875rem;border-collapse:collapse;">
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;width:35%;vertical-align:top;">
+                      <i class="fa-solid fa-hashtag me-1"></i>ID
+                    </td>
+                    <td id="md-id" style="font-weight:600;padding:0.5rem 0;"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);">
+                      <i class="fa-solid fa-heading me-1"></i>Title
+                    </td>
+                    <td id="md-title" style="font-weight:600;padding:0.5rem 0;border-top:1px solid var(--border);"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);">
+                      <i class="fa-solid fa-tag me-1"></i>Category
+                    </td>
+                    <td id="md-category" style="padding:0.5rem 0;border-top:1px solid var(--border);"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);">
+                      <i class="fa-solid fa-flag me-1"></i>Priority
+                    </td>
+                    <td id="md-priority" style="padding:0.5rem 0;border-top:1px solid var(--border);"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);">
+                      <i class="fa-solid fa-circle-dot me-1"></i>Status
+                    </td>
+                    <td id="md-status" style="padding:0.5rem 0;border-top:1px solid var(--border);"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);vertical-align:top;">
+                      <i class="fa-solid fa-align-left me-1"></i>Description
+                    </td>
+                    <td id="md-description"
+                        style="padding:0.5rem 0;border-top:1px solid var(--border);
+                               color:var(--text-muted);font-size:0.84rem;line-height:1.6;"></td>
+                  </tr>
+                  <tr>
+                    <td style="color:var(--text-muted);padding:0.5rem 0;border-top:1px solid var(--border);">
+                      <i class="fa-solid fa-calendar me-1"></i>Submitted
+                    </td>
+                    <td id="md-date" style="padding:0.5rem 0;border-top:1px solid var(--border);color:var(--text-muted);font-size:0.82rem;"></td>
+                  </tr>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn-action btn-update" data-bs-dismiss="modal">
+                  <i class="fa-solid fa-xmark"></i> Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Student Edit Complaint Modal ── -->
+        <div class="modal fade" id="studentEditModal" tabindex="-1" aria-labelledby="studentEditModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="studentEditModalLabel">
+                  <i class="fa-solid fa-pen-to-square me-2" style="color:var(--primary-light);"></i>
+                  Edit Complaint
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <form id="studentEditForm" method="POST" novalidate>
+                <div class="modal-body" style="padding:1.25rem;">
+                  <!-- Category -->
+                  <div class="mb-3">
+                    <label class="form-label" for="edit-category">
+                      <i class="fa-solid fa-tag me-1"></i>Complaint Category *
+                    </label>
+                    <select id="edit-category" name="category" class="form-select" required>
+                      {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Title -->
+                  <div class="mb-3">
+                    <label class="form-label" for="edit-title">
+                      <i class="fa-solid fa-heading me-1"></i>Complaint Title *
+                    </label>
+                    <input type="text" id="edit-title" name="title" class="form-control" required minlength="5" maxlength="200" />
+                    <div class="form-text" style="color:var(--text-muted);font-size:0.75rem;">
+                      <span id="edit-titleCount">0</span>/200 characters
+                    </div>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="mb-3">
+                    <label class="form-label" for="edit-description">
+                      <i class="fa-solid fa-align-left me-1"></i>Detailed Description *
+                    </label>
+                    <textarea id="edit-description" name="description" class="form-control" rows="5" required minlength="10" maxlength="2000"></textarea>
+                    <div class="form-text" style="color:var(--text-muted);font-size:0.75rem;">
+                      <span id="edit-descCount">0</span>/2000 characters
+                    </div>
+                  </div>
+
+                  <!-- Priority -->
+                  <div class="mb-3">
+                    <label class="form-label">
+                      <i class="fa-solid fa-flag me-1"></i>Priority Level
+                    </label>
+                    <div class="priority-group">
+                      <div class="priority-pill">
+                        <input type="radio" id="edit-p-low"    name="priority" value="Low"    />
+                        <label for="edit-p-low"    class="low">🟢 Low</label>
+                      </div>
+                      <div class="priority-pill">
+                        <input type="radio" id="edit-p-medium" name="priority" value="Medium" />
+                        <label for="edit-p-medium" class="medium">🟡 Medium</label>
+                      </div>
+                      <div class="priority-pill">
+                        <input type="radio" id="edit-p-high"   name="priority" value="High"   />
+                        <label for="edit-p-high"   class="high">🔴 High</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn-action btn-delete" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                  </button>
+                  <button type="submit" class="btn-action btn-update" style="padding:0.45rem 1rem;">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Student Delete Confirm Modal ── -->
+        <div class="modal fade" id="studentDeleteModal" tabindex="-1" aria-labelledby="studentDeleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="studentDeleteModalLabel">
+                  <i class="fa-solid fa-triangle-exclamation me-2" style="color:#f87171;"></i>
+                  Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" style="padding:1.25rem;">
+                <p style="color:var(--text-muted);font-size:0.875rem;">
+                  Are you sure you want to permanently delete this complaint:
+                </p>
+                <p>
+                  <strong id="sd-title" style="color:var(--text-primary);font-size:0.9rem;"></strong>
+                </p>
+                <div class="alert alert-danger" style="font-size:0.8rem;margin-top:0.5rem;">
+                  <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                  This action cannot be undone.
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn-action btn-update" data-bs-dismiss="modal">
+                  <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+                <form id="studentDeleteForm" method="POST">
+                  <button type="submit" class="btn-action btn-delete" style="padding:0.45rem 1rem;">
+                    <i class="fa-solid fa-trash"></i> Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <!-- ══════════════════════════════════════════════════
+           SUBMIT MODE: complaint submission form
+           ══════════════════════════════════════════════════ -->
+      {% else %}
+
+        <div class="complaint-form-card">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;color:var(--text-primary);">
+            <i class="fa-solid fa-file-pen me-2" style="color:var(--primary-light);"></i>
+            New Complaint
+          </h2>
+
+          <form method="POST" action="{{ url_for('submit_complaint') }}" id="complaintForm" novalidate>
+
+            <!-- Category -->
+            <div class="mb-3">
+              <label class="form-label" for="category">
+                <i class="fa-solid fa-tag me-1"></i>Complaint Category *
+              </label>
+              <select id="category" name="category" class="form-select" required>
+                <option value="" disabled selected>-- Select a category --</option>
+                {% for cat in categories %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Please select a category.</div>
+            </div>
+
+            <!-- Title -->
+            <div class="mb-3">
+              <label class="form-label" for="title">
+                <i class="fa-solid fa-heading me-1"></i>Complaint Title *
+              </label>
+              <input type="text" id="title" name="title" class="form-control"
+                     placeholder="Brief title describing the issue…"
+                     required minlength="5" maxlength="200" />
+              <div class="form-text" style="color:var(--text-muted);font-size:0.75rem;">
+                <span id="titleCount">0</span>/200 characters
+              </div>
+              <div class="invalid-feedback">Title must be between 5 and 200 characters.</div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label class="form-label" for="description">
+                <i class="fa-solid fa-align-left me-1"></i>Detailed Description *
+              </label>
+              <textarea id="description" name="description" class="form-control"
+                        rows="5" placeholder="Describe the issue in detail — location, time, severity…"
+                        required minlength="10" maxlength="2000"></textarea>
+              <div class="form-text" style="color:var(--text-muted);font-size:0.75rem;">
+                <span id="descCount">0</span>/2000 characters
+              </div>
+              <div class="invalid-feedback">Description must be at least 10 characters.</div>
+            </div>
+
+            <!-- Priority -->
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="fa-solid fa-flag me-1"></i>Priority Level
+              </label>
+              <div class="priority-group">
+                <div class="priority-pill">
+                  <input type="radio" id="p-low"    name="priority" value="Low"    />
+                  <label for="p-low"    class="low">🟢 Low</label>
+                </div>
+                <div class="priority-pill">
+                  <input type="radio" id="p-medium" name="priority" value="Medium" checked />
+                  <label for="p-medium" class="medium">🟡 Medium</label>
+                </div>
+                <div class="priority-pill">
+                  <input type="radio" id="p-high"   name="priority" value="High"   />
+                  <label for="p-high"   class="high">🔴 High</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn-primary-custom" style="width:auto;padding:0.65rem 1.75rem;">
+                <i class="fa-solid fa-paper-plane me-2"></i>Submit Complaint
+              </button>
+              <a href="{{ url_for('dashboard') }}"
+                 class="btn-action btn-update" style="text-decoration:none;padding:0.65rem 1.2rem;">
+                <i class="fa-solid fa-arrow-left"></i> Cancel
+              </a>
+            </div>
+
+          </form>
+        </div>
+
+      {% endif %}
+
+    </div><!-- /.content-area -->
+  </div><!-- /.main-content -->
+</div><!-- /.layout-wrapper -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Mobile sidebar toggle
+  document.getElementById('sidebarToggle')?.addEventListener('click', function () {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // Auto-dismiss alerts
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(a => {
+      bootstrap.Alert.getOrCreateInstance(a).close();
+    });
+  }, 4000);
+
+  // Character counters
+  const titleInput = document.getElementById('title');
+  const descInput  = document.getElementById('description');
+  if (titleInput) {
+    titleInput.addEventListener('input', () => {
+      document.getElementById('titleCount').textContent = titleInput.value.length;
+    });
+  }
+  if (descInput) {
+    descInput.addEventListener('input', () => {
+      document.getElementById('descCount').textContent = descInput.value.length;
+    });
+  }
+
+  // Form validation
+  const complaintForm = document.getElementById('complaintForm');
+  if (complaintForm) {
+    complaintForm.addEventListener('submit', function (e) {
+      if (!this.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.classList.add('was-validated');
+    });
+  }
+
+  // Populate detail modal
+  const detailModal = document.getElementById('detailModal');
+  if (detailModal) {
+    detailModal.addEventListener('show.bs.modal', function (event) {
+      const btn = event.relatedTarget;
+      document.getElementById('md-id').textContent          = '#' + btn.dataset.id;
+      document.getElementById('md-title').textContent       = btn.dataset.title;
+      document.getElementById('md-category').textContent    = btn.dataset.category;
+      document.getElementById('md-description').textContent = btn.dataset.description;
+      document.getElementById('md-date').textContent        = btn.dataset.date;
+
+      // Priority badge
+      const p = btn.dataset.priority;
+      const pClass = p === 'High' ? 'badge-high' : p === 'Medium' ? 'badge-medium' : 'badge-low';
+      document.getElementById('md-priority').innerHTML =
+        `<span class="badge-status ${pClass}">${p}</span>`;
+
+      // Status badge
+      const s = btn.dataset.status;
+      const sClass = s === 'Pending' ? 'badge-pending' :
+                     s === 'In Progress' ? 'badge-in-progress' : 'badge-resolved';
+      const sIcon  = s === 'Pending' ? 'fa-clock' :
+                     s === 'In Progress' ? 'fa-spinner fa-spin' : 'fa-check';
+      document.getElementById('md-status').innerHTML =
+        `<span class="badge-status ${sClass}"><i class="fa-solid ${sIcon}"></i> ${s}</span>`;
+    });
+  }
+
+  // Populate student edit modal
+  const studentEditModal = document.getElementById('studentEditModal');
+  if (studentEditModal) {
+    studentEditModal.addEventListener('show.bs.modal', function (event) {
+      const btn = event.relatedTarget;
+      const id = btn.dataset.id;
+      document.getElementById('edit-title').value       = btn.dataset.title;
+      document.getElementById('edit-category').value    = btn.dataset.category;
+      document.getElementById('edit-description').value = btn.dataset.description;
+      
+      // Update character counts
+      document.getElementById('edit-titleCount').textContent = btn.dataset.title.length;
+      document.getElementById('edit-descCount').textContent  = btn.dataset.description.length;
+
+      // Select correct priority radio button
+      const priority = btn.dataset.priority;
+      const radioBtn = document.getElementById(`edit-p-${priority.toLowerCase()}`);
+      if (radioBtn) radioBtn.checked = true;
+
+      // Set action URL
+      document.getElementById('studentEditForm').action = `/complaint/edit/${id}`;
+    });
+
+    // Handle word count / char count live update for edit
+    const editTitle = document.getElementById('edit-title');
+    const editDesc  = document.getElementById('edit-description');
+    if (editTitle) {
+      editTitle.addEventListener('input', () => {
+        document.getElementById('edit-titleCount').textContent = editTitle.value.length;
+      });
+    }
+    if (editDesc) {
+      editDesc.addEventListener('input', () => {
+        document.getElementById('edit-descCount').textContent = editDesc.value.length;
+      });
+    }
+
+    // Form validation for edit form
+    const studentEditForm = document.getElementById('studentEditForm');
+    if (studentEditForm) {
+      studentEditForm.addEventListener('submit', function (e) {
+        if (!this.checkValidity()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        this.classList.add('was-validated');
+      });
+    }
+  }
+
+  // Populate student delete modal
+  const studentDeleteModal = document.getElementById('studentDeleteModal');
+  if (studentDeleteModal) {
+    studentDeleteModal.addEventListener('show.bs.modal', function (event) {
+      const btn = event.relatedTarget;
+      document.getElementById('sd-title').textContent = btn.dataset.title;
+      document.getElementById('studentDeleteForm').action = `/complaint/delete/${btn.dataset.id}`;
+    });
+  }
+</script>
+</body>
+</html>

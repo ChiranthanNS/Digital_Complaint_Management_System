@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if admin_mode %}Admin Login{% else %}Student Login{% endif %} – Complaint MS</title>
+  <meta name="description" content="Digital Complaint Management System – secure login portal." />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+</head>
+<body class="auth-page">
+
+<div class="auth-card">
+
+  <!-- Logo / Icon -->
+  <div class="auth-logo">
+    {% if admin_mode %}
+      <i class="fa-solid fa-user-shield" style="color:#fff;"></i>
+    {% else %}
+      <i class="fa-solid fa-graduation-cap" style="color:#fff;"></i>
+    {% endif %}
+  </div>
+
+  <h1 class="auth-title">
+    {% if admin_mode %}Admin Portal{% else %}Student Login{% endif %}
+  </h1>
+  <p class="auth-subtitle">
+    {% if admin_mode %}
+      Sign in with your admin credentials
+    {% else %}
+      Sign in to manage your complaints
+    {% endif %}
+  </p>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
+          <i class="fa-solid fa-circle-info me-2"></i>{{ msg }}
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Login Form -->
+  <form method="POST" novalidate>
+    {% if admin_mode %}
+      <!-- Admin: username field -->
+      <div class="mb-3">
+        <label class="form-label" for="username">
+          <i class="fa-solid fa-user me-1"></i>Username
+        </label>
+        <input type="text" id="username" name="username"
+               class="form-control" placeholder="admin" required />
+      </div>
+    {% else %}
+      <!-- Student: email field -->
+      <div class="mb-3">
+        <label class="form-label" for="email">
+          <i class="fa-solid fa-envelope me-1"></i>Email Address
+        </label>
+        <input type="email" id="email" name="email"
+               class="form-control" placeholder="you@college.edu" required />
+      </div>
+    {% endif %}
+
+    <!-- Password -->
+    <div class="mb-4">
+      <label class="form-label" for="password">
+        <i class="fa-solid fa-lock me-1"></i>Password
+      </label>
+      <div class="position-relative">
+        <input type="password" id="password" name="password"
+               class="form-control pe-5" placeholder="••••••••" required />
+        <button type="button" id="togglePw"
+                class="btn position-absolute end-0 top-50 translate-middle-y border-0"
+                style="background:none;color:var(--text-muted);z-index:10;">
+          <i class="fa-solid fa-eye" id="eyeIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary-custom mb-3">
+      <i class="fa-solid fa-right-to-bracket me-2"></i>
+      {% if admin_mode %}Sign In as Admin{% else %}Sign In{% endif %}
+    </button>
+  </form>
+
+  <!-- Footer links -->
+  {% if not admin_mode %}
+    <p class="text-center mt-2" style="font-size:0.84rem;color:var(--text-muted);">
+      Don't have an account?
+      <a href="{{ url_for('register') }}" style="color:var(--primary-light);font-weight:600;">
+        Register here
+      </a>
+    </p>
+    <hr style="border-color:var(--border);margin:1.25rem 0;" />
+    <p class="text-center" style="font-size:0.82rem;color:var(--text-muted);">
+      <i class="fa-solid fa-user-shield me-1"></i>
+      Are you an admin?
+      <a href="{{ url_for('admin_login') }}" style="color:var(--primary-light);font-weight:600;">
+        Admin Login →
+      </a>
+    </p>
+  {% else %}
+    <hr style="border-color:var(--border);margin:1.25rem 0;" />
+    <p class="text-center" style="font-size:0.82rem;color:var(--text-muted);">
+      <i class="fa-solid fa-graduation-cap me-1"></i>
+      Student?
+      <a href="{{ url_for('login') }}" style="color:var(--primary-light);font-weight:600;">
+        Student Login →
+      </a>
+    </p>
+  {% endif %}
+
+</div><!-- /.auth-card -->
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Toggle password visibility
+  document.getElementById('togglePw').addEventListener('click', function () {
+    const pw = document.getElementById('password');
+    const ic = document.getElementById('eyeIcon');
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      ic.className = 'fa-solid fa-eye-slash';
+    } else {
+      pw.type = 'password';
+      ic.className = 'fa-solid fa-eye';
+    }
+  });
+</script>
+</body>
+</html>

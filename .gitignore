@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE / Project files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Application Database files (Keep the schema .sql, ignore the runtime SQLite db)
+backend/database/complaint_db.db
+backend/database/complaint_db.db-journal
+
+# General OS files
+Thumbs.db
+.DS_Store

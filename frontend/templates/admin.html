@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard – Complaint MS</title>
+  <meta name="description" content="Admin panel to manage, filter, update and delete student complaints." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+
+  <style>
+    /* ── Admin accent overrides ── */
+    :root {
+      --primary:       #7c3aed;   /* violet for admin */
+      --primary-dark:  #5b21b6;
+      --primary-light: #a78bfa;
+    }
+    .brand-icon { background: linear-gradient(135deg, #7c3aed, #06b6d4); }
+
+    /* Category bar chart */
+    .cat-bar-wrap { display: flex; flex-direction: column; gap: 0.6rem; }
+    .cat-row      { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
+    .cat-label    { width: 130px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cat-bar-bg   { flex: 1; background: rgba(255,255,255,0.06); border-radius: 4px; height: 8px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; border-radius: 4px;
+                    background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+    .cat-count    { width: 28px; text-align: right; font-weight: 600; color: var(--text-primary); }
+  </style>
+</head>
+<body>
+
+<div class="layout-wrapper">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-user-shield" style="color:#fff;"></i>
+      </div>
+      <div>
+        <div class="brand-text">Complaint MS</div>
+        <div class="brand-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Management</div>
+
+      <a href="{{ url_for('admin_dashboard') }}" class="nav-link-item active">
+        <i class="fa-solid fa-gauge-high"></i> Dashboard
+      </a>
+
+      <!-- Scroll to sections within same page -->
+      <a href="#section-stats" class="nav-link-item" onclick="scrollTo('section-stats')">
+        <i class="fa-solid fa-chart-pie"></i> Statistics
+      </a>
+      <a href="#section-complaints" class="nav-link-item" onclick="scrollTo('section-complaints')">
+        <i class="fa-solid fa-list"></i> All Complaints
+      </a>
+
+      <div class="nav-section-label mt-3">Account</div>
+      <a href="{{ url_for('admin_logout') }}" class="nav-link-item">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div style="font-size:0.72rem;color:var(--text-muted);text-align:center;">
+        <i class="fa-solid fa-shield-halved me-1"></i>Admin Session Active
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════ MAIN ═══════════════════ -->
+  <div class="main-content">
+
+    <!-- Top Navbar -->
+    <div class="top-navbar">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn border-0 d-md-none" id="sidebarToggle"
+                style="background:var(--glass);color:var(--text-primary);">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <span class="page-title">
+          <i class="fa-solid fa-user-shield me-2" style="color:var(--primary-light);"></i>
+          Admin Dashboard
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="user-badge">
+          <div class="user-avatar" style="background:linear-gradient(135deg,#7c3aed,#06b6d4);">A</div>
+          <span class="user-name">{{ session.admin_name }}</span>
+        </div>
+        <a href="{{ url_for('admin_logout') }}"
+           class="btn-action btn-delete"
+           style="text-decoration:none;padding:0.35rem 0.75rem;"
+           title="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
+              <i class="fa-solid fa-circle-check me-2"></i>{{ msg }}
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- ── Welcome Banner ── -->
+      <div class="panel mb-4"
+           style="background:linear-gradient(135deg,rgba(124,58,237,0.25),rgba(6,182,212,0.15));
+                  border-color:rgba(124,58,237,0.3);">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:0.25rem;">
+              Admin Control Panel
+              <span class="gradient-text" style="font-size:1rem;font-weight:500;"> — {{ session.admin_name }}</span>
+            </h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">
+              Manage all student complaints, update statuses, and track resolution progress.
+            </p>
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">
+            <i class="fa-solid fa-clock me-1"></i>
+            Total Complaints: <strong style="color:var(--text-primary);">{{ stats.total or 0 }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Stat Cards ── -->
+      <div id="section-stats" class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+
+        <div class="stat-card primary">
+          <div class="stat-icon primary"><i class="fa-solid fa-inbox"></i></div>
+          <div class="stat-value">{{ stats.total or 0 }}</div>
+          <div class="stat-label">Total Complaints</div>
+        </div>
+
+        <div class="stat-card warning">
+          <div class="stat-icon warning"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-value">{{ stats.pending or 0 }}</div>
+          <div class="stat-label">Pending</div>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-icon info"><i class="fa-solid fa-spinner"></i></div>
+          <div class="stat-value">{{ stats.in_progress or 0 }}</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-value">{{ stats.resolved or 0 }}</div>
+          <div class="stat-label">Resolved</div>
+        </div>
+
+        <!-- Resolution rate -->
+        <div class="stat-card" style="background:var(--glass);">
+          <div class="stat-icon" style="background:rgba(124,58,237,0.2);color:#a78bfa;">
+            <i class="fa-solid fa-percent"></i>
+          </div>
+          <div class="stat-value" style="font-size:1.6rem;">
+            {% if stats.total and stats.total > 0 %}
+              {{ ((stats.resolved or 0) / stats.total * 100) | round(1) }}%
+            {% else %}0%{% endif %}
+          </div>
+          <div class="stat-label">Resolution Rate</div>
+        </div>
+
+      </div><!-- /.stats-grid -->
+
+      <!-- ── Two-column analytics row ── -->
+      <div class="row g-3 mb-3">
+
+        <!-- Category Breakdown -->
+        <div class="col-lg-5">
+          <div class="panel h-100">
+            <div class="panel-header">
+              <span class="panel-title">
+                <i class="fa-solid fa-chart-bar" style="color:var(--primary-light);"></i>
+                By Category
+              </span>
+            </div>
+            {% if cat_stats %}
+              {% set max_count = cat_stats[0].cnt %}
+              <div class="cat-bar-wrap">
+                {% for row in cat_stats %}
+                <div class="cat-row">
+                  <span class="cat-label" title="{{ row.category }}">{{ row.category }}</span>
+                  <div class="cat-bar-bg">
+                    <div class="cat-bar-fill"
+                         style="width:{{ (row.cnt / max_count * 100) | round }}%"></div>
+                  </div>
+                  <span class="cat-count">{{ row.cnt }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-state" style="padding:1.5rem;">
+                <i class="fa-solid fa-chart-bar" style="font-size:2rem;"></i>
+                <p>No data yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Status Donut (CSS-only) -->
+        <div class="col-lg-7">
+          <div class="panel h-100">
+            <div class="panel-header">
+              <span class="panel-title">
+                <i class="fa-solid fa-circle-half-stroke" style="color:var(--primary-light);"></i>
+                Status Overview
+              </span>
+            </div>
+            <div class="d-flex flex-wrap gap-3 align-items-center justify-content-around">
+              {% set total = stats.total or 1 %}
+              {% set statuses = [
+                ('Pending',     stats.pending or 0,     '#f59e0b', 'fa-clock'),
+                ('In Progress', stats.in_progress or 0, '#3b82f6', 'fa-spinner'),
+                ('Resolved',    stats.resolved or 0,    '#10b981', 'fa-check-circle'),
+              ] %}
+              {% for label, count, color, icon in statuses %}
+              <div style="text-align:center;">
+                <div style="position:relative;display:inline-block;width:80px;height:80px;">
+                  <svg viewBox="0 0 36 36" style="transform:rotate(-90deg);width:80px;height:80px;">
+                    <circle cx="18" cy="18" r="15.9"
+                            fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/>
+                    <circle cx="18" cy="18" r="15.9" fill="none"
+                            stroke="{{ color }}" stroke-width="3.5"
+                            stroke-dasharray="{{ (count / total * 100) | round }}, 100"
+                            stroke-linecap="round"/>
+                  </svg>
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                              font-size:1rem;font-weight:800;color:{{ color }};">
+                    {{ count }}
+                  </div>
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+                  <i class="fa-solid {{ icon }} me-1" style="color:{{ color }};"></i>{{ label }}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row analytics -->
+
+      <!-- ── Search & Filter Bar ── -->
+      <form method="GET" action="{{ url_for('admin_dashboard') }}" id="filterForm">
+        <div class="filter-bar" id="section-complaints">
+          <!-- Search -->
+          <div style="flex:2;min-width:200px;">
+            <label class="form-label mb-1" style="font-size:0.75rem;">
+              <i class="fa-solid fa-magnifying-glass me-1"></i>Search
+            </label>
+            <input type="text" name="search" id="searchInput"
+                   class="form-control" placeholder="Search title, student, description…"
+                   value="{{ search }}" />
+          </div>
+
+          <!-- Category filter -->
+          <div style="min-width:160px;">
+            <label class="form-label mb-1" style="font-size:0.75rem;">
+              <i class="fa-solid fa-tag me-1"></i>Category
+            </label>
+            <select name="category" class="form-select" id="catFilter">
+              <option value="">All Categories</option>
+              {% for cat in categories %}
+                <option value="{{ cat }}" {% if sel_category == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Status filter -->
+          <div style="min-width:140px;">
+            <label class="form-label mb-1" style="font-size:0.75rem;">
+              <i class="fa-solid fa-circle-dot me-1"></i>Status
+            </label>
+            <select name="status" class="form-select" id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="Pending"     {% if sel_status == 'Pending'     %}selected{% endif %}>Pending</option>
+              <option value="In Progress" {% if sel_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+              <option value="Resolved"    {% if sel_status == 'Resolved'    %}selected{% endif %}>Resolved</option>
+            </select>
+          </div>
+
+          <!-- Buttons -->
+          <div class="d-flex gap-2 align-items-end" style="padding-top:1.3rem;">
+            <button type="submit" class="btn-action btn-update" style="padding:0.5rem 1rem;">
+              <i class="fa-solid fa-filter"></i> Filter
+            </button>
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="btn-action btn-delete" style="text-decoration:none;padding:0.5rem 0.9rem;">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </a>
+          </div>
+        </div>
+      </form>
+
+      <!-- ── Complaints Table ── -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <i class="fa-solid fa-table-list" style="color:var(--primary-light);"></i>
+            Complaints
+            <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:0.4rem;">
+              ({{ complaints | length }} results)
+            </span>
+          </span>
+        </div>
+
+        {% if complaints %}
+          <div class="table-responsive">
+            <table class="data-table" id="adminTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student</th>
+                  <th>Category</th>
+                  <th>Title</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in complaints %}
+                <tr id="row-{{ c.complaint_id }}">
+                  <td style="color:var(--text-muted);font-size:0.8rem;">#{{ c.complaint_id }}</td>
+                  <td>
+                    <div style="font-size:0.85rem;font-weight:600;">{{ c.student_name }}</div>
+                    <div style="font-size:0.73rem;color:var(--text-muted);">{{ c.student_email }}</div>
+                  </td>
+                  <td>
+                    <span style="font-size:0.8rem;display:flex;align-items:center;gap:0.35rem;">
+                      <i class="fa-solid
+                        {% if 'WiFi'       in c.category %}fa-wifi
+                        {% elif 'Electric' in c.category %}fa-bolt
+                        {% elif 'Water'    in c.category %}fa-droplet
+                        {% elif 'Classroom' in c.category %}fa-chalkboard
+                        {% elif 'Hostel'   in c.category %}fa-building
+                        {% else %}fa-circle-question{% endif %}"
+                        style="color:var(--primary-light);width:12px;"></i>
+                      {{ c.category }}
+                    </span>
+                  </td>
+                  <td style="max-width:200px;">
+                    <span title="{{ c.title }}"
+                          style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                      {{ c.title }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge-status
+                      {% if c.priority == 'High' %}badge-high
+                      {% elif c.priority == 'Medium' %}badge-medium
+                      {% else %}badge-low{% endif %}">
+                      {{ c.priority }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge-status
+                      {% if c.status == 'Pending' %}badge-pending
+                      {% elif c.status == 'In Progress' %}badge-in-progress
+                      {% else %}badge-resolved{% endif %}"
+                      id="status-badge-{{ c.complaint_id }}">
+                      <i class="fa-solid
+                        {% if c.status == 'Pending' %}fa-clock
+                        {% elif c.status == 'In Progress' %}fa-spinner fa-spin
+                        {% else %}fa-check{% endif %}"></i>
+                      {{ c.status }}
+                    </span>
+                  </td>
+                  <td style="color:var(--text-muted);font-size:0.79rem;white-space:nowrap;">
+                    {{ c.created_at.strftime('%d %b %Y') if c.created_at else '—' }}
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                      <!-- View Details -->
+                      <button class="btn-action btn-update"
+                              title="View Details"
+                              data-bs-toggle="modal"
+                              data-bs-target="#viewModal"
+                              data-id="{{ c.complaint_id }}"
+                              data-student="{{ c.student_name | e }}"
+                              data-email="{{ c.student_email }}"
+                              data-category="{{ c.category }}"
+                              data-title="{{ c.title | e }}"
+                              data-priority="{{ c.priority }}"
+                              data-status="{{ c.status }}"
+                              data-description="{{ c.description | e }}"
+                              data-date="{{ c.created_at.strftime('%d %b %Y, %I:%M %p') if c.created_at else '' }}">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+
+                      <!-- Update Status -->
+                      <button class="btn-action btn-update"
+                              title="Update Status"
+                              data-bs-toggle="modal"
+                              data-bs-target="#updateModal"
+                              data-id="{{ c.complaint_id }}"
+                              data-current="{{ c.status }}"
+                              data-title="{{ c.title | e }}">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
+
+                      <!-- Delete -->
+                      <button class="btn-action btn-delete"
+                              title="Delete Complaint"
+                              data-bs-toggle="modal"
+                              data-bs-target="#deleteModal"
+                              data-id="{{ c.complaint_id }}"
+                              data-title="{{ c.title | e }}">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        {% else %}
+          <div class="empty-state">
+            <i class="fa-solid fa-inbox"></i>
+            <p>No complaints found{% if search or sel_category or sel_status %} matching your filters{% endif %}.</p>
+            {% if search or sel_category or sel_status %}
+              <a href="{{ url_for('admin_dashboard') }}"
+                 class="btn-action btn-update mt-2" style="display:inline-flex;text-decoration:none;">
+                <i class="fa-solid fa-rotate-left"></i> Clear filters
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      </div><!-- /.panel complaints -->
+
+    </div><!-- /.content-area -->
+  </div><!-- /.main-content -->
+</div><!-- /.layout-wrapper -->
+
+<!-- ════════════════════════════════════════════════════
+     MODALS
+     ════════════════════════════════════════════════════ -->
+
+<!-- 1. View Details Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewModalLabel">
+          <i class="fa-solid fa-file-lines me-2" style="color:var(--primary-light);"></i>
+          Complaint Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Complaint ID</div>
+            <div id="vm-id" style="font-weight:700;font-size:1rem;color:var(--primary-light);"></div>
+          </div>
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Submitted On</div>
+            <div id="vm-date" style="font-size:0.875rem;"></div>
+          </div>
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Student</div>
+            <div id="vm-student" style="font-weight:600;"></div>
+            <div id="vm-email"   style="font-size:0.8rem;color:var(--text-muted);"></div>
+          </div>
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Category</div>
+            <div id="vm-category" style="font-size:0.875rem;"></div>
+          </div>
+          <div class="col-12">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Title</div>
+            <div id="vm-title" style="font-weight:600;font-size:0.95rem;"></div>
+          </div>
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Priority</div>
+            <div id="vm-priority"></div>
+          </div>
+          <div class="col-sm-6">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Status</div>
+            <div id="vm-status"></div>
+          </div>
+          <div class="col-12">
+            <div style="color:var(--text-muted);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;">Description</div>
+            <div id="vm-description"
+                 style="background:rgba(255,255,255,0.04);border:1px solid var(--border);
+                        border-radius:8px;padding:0.875rem;font-size:0.875rem;
+                        color:var(--text-muted);line-height:1.7;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-action btn-update" data-bs-dismiss="modal">
+          <i class="fa-solid fa-xmark"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Update Status Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="updateModalLabel">
+          <i class="fa-solid fa-pen-to-square me-2" style="color:#60a5fa;"></i>
+          Update Complaint Status
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="updateForm" method="POST">
+        <div class="modal-body" style="padding:1.25rem;">
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">
+            Updating status for: <strong id="um-title" style="color:var(--text-primary);"></strong>
+          </p>
+          <label class="form-label">New Status</label>
+          <select name="status" id="um-status" class="form-select" required>
+            <option value="Pending">⏳ Pending</option>
+            <option value="In Progress">🔄 In Progress</option>
+            <option value="Resolved">✅ Resolved</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-action btn-delete" data-bs-dismiss="modal">
+            <i class="fa-solid fa-xmark"></i> Cancel
+          </button>
+          <button type="submit" class="btn-action btn-update" style="padding:0.45rem 1rem;">
+            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Delete Confirm Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">
+          <i class="fa-solid fa-triangle-exclamation me-2" style="color:#f87171;"></i>
+          Confirm Deletion
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:1.25rem;">
+        <p style="color:var(--text-muted);font-size:0.875rem;">
+          Are you sure you want to permanently delete the complaint:
+        </p>
+        <p>
+          <strong id="dm-title" style="color:var(--text-primary);font-size:0.9rem;"></strong>
+        </p>
+        <div class="alert alert-danger" style="font-size:0.8rem;margin-top:0.5rem;">
+          <i class="fa-solid fa-triangle-exclamation me-1"></i>
+          This action cannot be undone.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-action btn-update" data-bs-dismiss="modal">
+          <i class="fa-solid fa-xmark"></i> Cancel
+        </button>
+        <form id="deleteForm" method="POST">
+          <button type="submit" class="btn-action btn-delete" style="padding:0.45rem 1rem;">
+            <i class="fa-solid fa-trash"></i> Delete Permanently
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── Mobile sidebar ──
+  document.getElementById('sidebarToggle')?.addEventListener('click', function () {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // ── Auto dismiss alerts ──
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(a => {
+      bootstrap.Alert.getOrCreateInstance(a).close();
+    });
+  }, 4000);
+
+  // ── View Modal ──
+  document.getElementById('viewModal').addEventListener('show.bs.modal', function (e) {
+    const b = e.relatedTarget;
+    document.getElementById('vm-id').textContent          = '#' + b.dataset.id;
+    document.getElementById('vm-student').textContent     = b.dataset.student;
+    document.getElementById('vm-email').textContent       = b.dataset.email;
+    document.getElementById('vm-category').textContent    = b.dataset.category;
+    document.getElementById('vm-title').textContent       = b.dataset.title;
+    document.getElementById('vm-description').textContent = b.dataset.description;
+    document.getElementById('vm-date').textContent        = b.dataset.date;
+
+    const p = b.dataset.priority;
+    const pCls = p === 'High' ? 'badge-high' : p === 'Medium' ? 'badge-medium' : 'badge-low';
+    document.getElementById('vm-priority').innerHTML =
+      `<span class="badge-status ${pCls}">${p}</span>`;
+
+    const s = b.dataset.status;
+    const sCls  = s === 'Pending' ? 'badge-pending' :
+                  s === 'In Progress' ? 'badge-in-progress' : 'badge-resolved';
+    const sIcon = s === 'Pending' ? 'fa-clock' :
+                  s === 'In Progress' ? 'fa-spinner fa-spin' : 'fa-check';
+    document.getElementById('vm-status').innerHTML =
+      `<span class="badge-status ${sCls}"><i class="fa-solid ${sIcon}"></i> ${s}</span>`;
+  });
+
+  // ── Update Modal ──
+  document.getElementById('updateModal').addEventListener('show.bs.modal', function (e) {
+    const b = e.relatedTarget;
+    const id = b.dataset.id;
+    document.getElementById('um-title').textContent  = b.dataset.title;
+    document.getElementById('um-status').value       = b.dataset.current;
+    document.getElementById('updateForm').action     =
+      `/admin/complaint/update/${id}`;
+  });
+
+  // ── Delete Modal ──
+  document.getElementById('deleteModal').addEventListener('show.bs.modal', function (e) {
+    const b = e.relatedTarget;
+    document.getElementById('dm-title').textContent  = b.dataset.title;
+    document.getElementById('deleteForm').action     =
+      `/admin/complaint/delete/${b.dataset.id}`;
+  });
+
+  // ── Live table search (client-side secondary filter) ──
+  document.getElementById('searchInput')?.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#adminTable tbody tr').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+
+  // ── Smooth scroll helper ──
+  function scrollTo(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+</body>
+</html>

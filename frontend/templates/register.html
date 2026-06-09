@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Registration – Complaint MS</title>
+  <meta name="description" content="Register as a student to submit and track campus complaints." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+</head>
+<body class="auth-page">
+
+<div class="auth-card" style="max-width:480px;">
+
+  <div class="auth-logo">
+    <i class="fa-solid fa-user-plus" style="color:#fff;"></i>
+  </div>
+
+  <h1 class="auth-title">Create Account</h1>
+  <p class="auth-subtitle">Join the Digital Complaint Management System</p>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
+          <i class="fa-solid fa-circle-exclamation me-2"></i>{{ msg }}
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Registration Form -->
+  <form method="POST" id="regForm" novalidate>
+
+    <!-- Full Name -->
+    <div class="mb-3">
+      <label class="form-label" for="name">
+        <i class="fa-solid fa-id-card me-1"></i>Full Name
+      </label>
+      <input type="text" id="name" name="name" class="form-control"
+             placeholder="John Doe" required minlength="2" />
+      <div class="invalid-feedback">Please enter your full name (min 2 chars).</div>
+    </div>
+
+    <!-- Email -->
+    <div class="mb-3">
+      <label class="form-label" for="email">
+        <i class="fa-solid fa-envelope me-1"></i>College Email
+      </label>
+      <input type="email" id="email" name="email" class="form-control"
+             placeholder="rollno@college.edu" required />
+      <div class="invalid-feedback">Please enter a valid email address.</div>
+    </div>
+
+    <!-- Phone -->
+    <div class="mb-3">
+      <label class="form-label" for="phone">
+        <i class="fa-solid fa-phone me-1"></i>Phone Number
+      </label>
+      <input type="tel" id="phone" name="phone" class="form-control"
+             placeholder="98765 43210" required pattern="[0-9]{10}" maxlength="10" />
+      <div class="invalid-feedback">Please enter a valid 10-digit phone number.</div>
+    </div>
+
+    <!-- Password -->
+    <div class="mb-3">
+      <label class="form-label" for="password">
+        <i class="fa-solid fa-lock me-1"></i>Password
+      </label>
+      <div class="position-relative">
+        <input type="password" id="password" name="password" class="form-control pe-5"
+               placeholder="Min 6 characters" required minlength="6" />
+        <button type="button" onclick="toggleVis('password','eye1')"
+                class="btn position-absolute end-0 top-50 translate-middle-y border-0"
+                style="background:none;color:var(--text-muted);z-index:10;">
+          <i class="fa-solid fa-eye" id="eye1"></i>
+        </button>
+      </div>
+
+      <!-- Password strength bar -->
+      <div class="mt-2">
+        <div class="progress" style="height:4px;background:var(--border);border-radius:4px;">
+          <div id="pwStrengthBar" class="progress-bar" role="progressbar"
+               style="width:0%;border-radius:4px;transition:width 0.4s,background 0.4s;"></div>
+        </div>
+        <small id="pwStrengthText" style="color:var(--text-muted);font-size:0.72rem;"></small>
+      </div>
+    </div>
+
+    <!-- Confirm Password -->
+    <div class="mb-4">
+      <label class="form-label" for="confirm">
+        <i class="fa-solid fa-check-double me-1"></i>Confirm Password
+      </label>
+      <div class="position-relative">
+        <input type="password" id="confirm" name="confirm" class="form-control pe-5"
+               placeholder="Re-enter password" required />
+        <button type="button" onclick="toggleVis('confirm','eye2')"
+                class="btn position-absolute end-0 top-50 translate-middle-y border-0"
+                style="background:none;color:var(--text-muted);z-index:10;">
+          <i class="fa-solid fa-eye" id="eye2"></i>
+        </button>
+      </div>
+      <div class="invalid-feedback">Passwords do not match.</div>
+    </div>
+
+    <button type="submit" class="btn-primary-custom mb-3" id="submitBtn">
+      <i class="fa-solid fa-user-plus me-2"></i>Create Account
+    </button>
+  </form>
+
+  <p class="text-center" style="font-size:0.84rem;color:var(--text-muted);">
+    Already have an account?
+    <a href="{{ url_for('login') }}" style="color:var(--primary-light);font-weight:600;">
+      Sign in here
+    </a>
+  </p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Toggle password visibility
+  function toggleVis(fieldId, iconId) {
+    const f = document.getElementById(fieldId);
+    const i = document.getElementById(iconId);
+    f.type   = f.type === 'password' ? 'text' : 'password';
+    i.className = f.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+  }
+
+  // Password strength meter
+  document.getElementById('password').addEventListener('input', function () {
+    const val = this.value;
+    const bar = document.getElementById('pwStrengthBar');
+    const txt = document.getElementById('pwStrengthText');
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+      { pct: 20,  color: '#ef4444', label: 'Very Weak' },
+      { pct: 40,  color: '#f97316', label: 'Weak' },
+      { pct: 60,  color: '#f59e0b', label: 'Fair' },
+      { pct: 80,  color: '#84cc16', label: 'Good' },
+      { pct: 100, color: '#10b981', label: 'Strong' },
+    ];
+    const l = levels[Math.max(0, score - 1)] || levels[0];
+    bar.style.width      = (val.length ? l.pct : 0) + '%';
+    bar.style.background = l.color;
+    txt.textContent      = val.length ? l.label : '';
+    txt.style.color      = l.color;
+  });
+
+  // Client-side form validation
+  document.getElementById('regForm').addEventListener('submit', function (e) {
+    const pw  = document.getElementById('password').value;
+    const cfm = document.getElementById('confirm').value;
+    const confirmField = document.getElementById('confirm');
+    if (pw !== cfm) {
+      e.preventDefault();
+      confirmField.setCustomValidity('Passwords do not match.');
+    } else {
+      confirmField.setCustomValidity('');
+    }
+    if (!this.checkValidity()) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    this.classList.add('was-validated');
+  });
+</script>
+</body>
+</html>
