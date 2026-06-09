@@ -9,20 +9,9 @@ A modern, responsive, and secure web application designed to streamline the stud
 
 This repository contains two implementations:
 1. **🌐 Live Static App:** A pure client-side SPA (Single Page Application) that runs directly on GitHub Pages, storing data locally via browser `localStorage`.
-2. **🐍 Python Flask App:** A full-stack Python application powered by Flask and SQLite database (located in `/backend` and `/frontend` folders).
+2. **🐍 Python Flask App:** A full-stack Python application powered by Flask and SQLite database (located in the `/flask-app` folder).
 
 ![System Mockup](assets/hero_banner.png)
-
----
-
-## 🌐 Live Deployment on GitHub Pages
-
-The static version is ready to be hosted on your GitHub Pages domain:
-1. Go to your repository settings on GitHub: **Settings** ➡️ **Pages** (in the left sidebar).
-2. Under **Build and deployment** ➡️ **Source**, select **Deploy from a branch**.
-3. Under **Branch**, select `main` and `/ (root)`.
-4. Click **Save**.
-5. After a few minutes, the application will be live at: **[https://ChiranthanNS.github.io/Digital_Complaint_Management_System/](https://ChiranthanNS.github.io/Digital_Complaint_Management_System/)**
 
 ---
 
@@ -75,20 +64,27 @@ sequenceDiagram
 
 ```
 ComplaintManagement/
-├── assets/                    # Media assets (mockups, banners)
-│   └── hero_banner.png
-├── backend/                   # Flask Server & Logic
-│   ├── database/
-│   │   ├── complaint_db.db    # Local DB (Git ignored)
-│   │   └── complaint_db.sql   # SQL DB Schema Structure
-│   ├── tests/
-│   │   └── test_student_actions.py  # Automation Unit Tests
-│   ├── app.py                 # Flask Server Entrypoint
-│   ├── init_sqlite.py         # DB Initializer Script
-│   └── requirements.txt       # Python Dependencies
-└── frontend/                  # Web Interface
-    ├── static/                # CSS, client-side images, JS
-    └── templates/             # Jinja2 HTML Templates
+├── assets/                    # Static Application Assets
+│   ├── css/
+│   │   └── style.css          # Main CSS Stylesheet
+│   ├── js/
+│   │   └── app.js             # Client-side SPA Application Logic
+│   └── hero_banner.png        # System Screenshot Banner
+├── flask-app/                 # Python Flask Fullstack Implementation
+│   ├── backend/               # Flask Backend Server & SQLite
+│   │   ├── database/
+│   │   │   ├── complaint_db.db
+│   │   │   └── complaint_db.sql
+│   │   ├── tests/
+│   │   │   └── test_student_actions.py
+│   │   ├── app.py
+│   │   ├── init_sqlite.py
+│   │   └── requirements.txt
+│   └── frontend/              # HTML Templates & Styles
+│       ├── static/
+│       └── templates/
+├── index.html                 # Main Entrypoint for GitHub Pages SPA
+└── .gitignore
 ```
 
 ---
@@ -117,22 +113,22 @@ Make sure you have **Python 3.10+** and **pip** installed.
 
 3. **Install dependencies:**
    ```bash
-   pip install -r backend/requirements.txt
+   pip install -r flask-app/backend/requirements.txt
    ```
 
 4. **Initialize the Database:**
    *Note: A pre-configured database is included, but you can build a fresh database using the SQL schema if needed:*
    ```bash
-   python backend/init_sqlite.py
+   python flask-app/backend/init_sqlite.py
    ```
 
 ---
 
-## 🖥️ Running the Application
+## 🖥️ Running the Flask Application
 
 1. **Start the Flask server:**
    ```bash
-   python backend/app.py
+   python flask-app/backend/app.py
    ```
 2. **Access the application in your browser:**
    - **Student Portal:** [http://127.0.0.1:5000](http://127.0.0.1:5000)
@@ -148,5 +144,6 @@ To access the Admin Portal, use the following seeded account:
 ## 🧪 Running Unit Tests
 A suite of unit tests is included to verify the application's core logic and routes (especially the restricted student action guards):
 ```bash
+cd flask-app
 python -m unittest backend/tests/test_student_actions.py
 ```

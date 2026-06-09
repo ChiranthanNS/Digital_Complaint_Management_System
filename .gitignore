@@ -20,8 +20,8 @@ ENV/
 *.swp
 
 # Application Database files (Keep the schema .sql, ignore the runtime SQLite db)
-backend/database/complaint_db.db
-backend/database/complaint_db.db-journal
+flask-app/backend/database/complaint_db.db
+flask-app/backend/database/complaint_db.db-journal
 
 # General OS files
 Thumbs.db
